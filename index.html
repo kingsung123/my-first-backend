@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>待辦事項管理</title>
+</head>
+<body>
+  <h1>待辦事項管理</h1>
+
+  <!-- 登入區 -->
+  <div id="login-section">
+    <h2>登入</h2>
+    <input type="text" id="username" placeholder="使用者名稱" />
+    <input type="password" id="password" placeholder="密碼" />
+    <button onclick="login()">登入</button>
+    <p id="login-message"></p>
+  </div>
+
+  <!-- 待辦事項區，登入後顯示 -->
+  <div id="todo-section" style="display:none;">
+    <h2>你的待辦事項</h2>
+    <ul id="todo-list"></ul>
+
+    <input type="text" id="new-todo-title" placeholder="新增任務標題" />
+    <button onclick="addTodo()">新增任務</button>
+
+    <h3>搜尋任務</h3>
+    <input type="text" id="search-keyword" placeholder="搜尋關鍵字" />
+    <button onclick="searchTodos()">搜尋</button>
+    <ul id="search-results"></ul>
+  </div>
+
+  <script>
+    let userId = null;
+
+    async function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password})
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        userId = data.user_id;
+        document.getElementById('login-message').textContent = '登入成功！';
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('todo-section').style.display = 'block';
+        loadTodos();
+      } else {
+        document.getElementById('login-message').textContent = data.message || '登入失敗';
+      }
+    }
+
+    async function loadTodos() {
+      const res = await fetch(`/todos/${userId}`);
+      const todos = await res.json();
+      const list = document.getElementById('todo-list');
+      list.innerHTML = '';
+      todos.forEach(todo => {
+        const li = document.createElement('li');
+        li.textContent = todo.title + (todo.is_done ? ' (完成)' : '');
+        list.appendChild(li);
+      });
+    }
+
+    async function addTodo() {
+      const title = document.getElementById('new-todo-title').value;
+      if (!title) {
+        alert('請輸入任務標題');
+        return;
+      }
+      const res = await fetch('/todos', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: userId, title})
+      });
+      const data = await res.json();
+      alert(data.message);
+      document.getElementById('new-todo-title').value = '';
+      loadTodos();
+    }
+
+    async function searchTodos() {
+      const keyword = document.getElementById('search-keyword').value;
+      if (!keyword) {
+        alert('請輸入搜尋關鍵字');
+        return;
+      }
+      const res = await fetch(`/todos/search?keyword=${encodeURIComponent(keyword)}`);
+      const data = await res.json();
+
+      const results = document.getElementById('search-results');
+      results.innerHTML = '';
+
+      if (data.todos.length === 0) {
+        results.textContent = '沒有找到匹配的任務';
+      } else {
+        data.todos.forEach(todo => {
+          const li = document.createElement('li');
+          li.textContent = todo.title + (todo.is_done ? ' (完成)' : '');
+          results.appendChild(li);
+        });
+      }
+    }
+  </script>
+</body>
+</html>
