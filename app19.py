@@ -1,38 +1,30 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 import sqlite3
 import json
-from flask import make_response
+from urllib.parse import unquote
 
 app = Flask(__name__)
 
-# 初始化資料庫
-DATABASE = 'todos.db'
-
+# 連接資料庫
 def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
+    conn = sqlite3.connect('todos.db')
     conn.row_factory = sqlite3.Row
     return conn
 
-def _json_response(data, status=200):
-    response = make_response(json.dumps(data, ensure_ascii=False))
-    response.headers['Content-Type'] = 'application/json; charset=utf-8'
-    response.status_code = status
-    return response
-
-# 建立資料表
+# 初始化資料庫
 def init_db():
     conn = get_db_connection()
     c = conn.cursor()
-
+    
     # 使用者表格
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL UNIQUE,
+            username TEXT NOT NULL,
             password TEXT NOT NULL
         )
     ''')
-
+    
     # 待辦事項表格
     c.execute('''
         CREATE TABLE IF NOT EXISTS todos (
@@ -40,16 +32,21 @@ def init_db():
             user_id INTEGER NOT NULL,
             title TEXT NOT NULL,
             is_done INTEGER DEFAULT 0,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            FOREIGN KEY(user_id) REFERENCES users(id)
         )
     ''')
-
-    # 新增預設使用者
+    
+    # 預設使用者
     c.execute("INSERT OR IGNORE INTO users (id, username, password) VALUES (1, 'testuser', '1234')")
     conn.commit()
     conn.close()
 
-init_db()
+# 自訂 JSON 回應格式
+def _json_response(data, status=200):
+    response = make_response(json.dumps(data, ensure_ascii=False))
+    response.headers['Content-Type'] = 'application/json; charset=utf-8'
+    response.status_code = status
+    return response
 
 # 登入
 @app.route('/login', methods=['POST'])
@@ -83,7 +80,7 @@ def add_todo():
     conn.close()
     return _json_response({'message': '任務新增成功'})
 
-# 查詢使用者待辦事項
+# 查詢指定使用者的待辦事項
 @app.route('/todos/<int:user_id>', methods=['GET'])
 def get_user_todos(user_id):
     conn = get_db_connection()
@@ -103,42 +100,76 @@ def get_all_todos():
     conn.close()
     return _json_response(todos)
 
-# 更新待辦事項狀態
+# 更新待辦事項
 @app.route('/todos/<int:todo_id>', methods=['PUT'])
 def update_todo(todo_id):
     data = request.get_json()
+    title = data.get('title')
     is_done = data.get('is_done')
 
     conn = get_db_connection()
     c = conn.cursor()
-    c.execute('UPDATE todos SET is_done=? WHERE id=?', (is_done, todo_id))
+    c.execute('UPDATE todos SET title = ?, is_done = ? WHERE id = ?', (title, is_done, todo_id))
     conn.commit()
     conn.close()
     return _json_response({'message': '任務更新成功'})
 
-# 搜尋待辦事項
+# 刪除待辦事項
+@app.route('/todos/<int:todo_id>', methods=['DELETE'])
+def delete_todo(todo_id):
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute('DELETE FROM todos WHERE id = ?', (todo_id,))
+    conn.commit()
+    conn.close()
+    return _json_response({'message': '任務刪除成功'})
+
+# 搜尋待辦事項（支援中文）
 @app.route('/todos/search', methods=['GET'])
 def search_todos():
     keyword = request.args.get('keyword', '')
-    print(f"搜尋關鍵字: {keyword}")  # 顯示搜尋關鍵字
+
+    # 解碼 URL 字串，確保中文字正確顯示
+    keyword = unquote(keyword)
+
+    if not keyword:
+        return _json_response({'message': '請提供搜尋關鍵字'}, 400)
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    # 確保 LIKE 語句正確執行，並加入 % 符號來進行模糊搜尋
-    query = "SELECT * FROM todos WHERE LOWER(title) LIKE ?"
-    print(f"執行的 SQL 查詢語句: {query}")  # 顯示 SQL 查詢語句
-    
-    cursor.execute(query, ('%' + keyword.lower() + '%',))  # 使用小寫進行搜尋
-    todos = cursor.fetchall()
+    cursor.execute("SELECT id, user_id, title, is_done FROM todos")
+    all_todos = cursor.fetchall()
+    conn.close()
 
-    if todos:
-        print(f"找到的任務: {todos}")  # 輸出找到的任務
-        return _json_response([{'id': row[0], 'title': row[2], 'is_done': row[3]} for row in todos])
+    matched_todos = []
+    keyword_lower = keyword.lower()
+
+    for row in all_todos:
+        title = str(row['title'])
+        if keyword_lower in title.lower():
+            matched_todos.append({
+                'id': row['id'],
+                'user_id': row['user_id'],
+                'title': title,
+                'is_done': row['is_done']
+            })
+
+    if matched_todos:
+        return _json_response({
+            'message': f'找到 {len(matched_todos)} 個匹配的任務',
+            'keyword': keyword,
+            'todos': matched_todos
+        })
     else:
-        return _json_response({'message': '沒有找到匹配的任務'})
+        return _json_response({
+            'message': '沒有找到匹配的任務',
+            'keyword': keyword,
+            'todos': []
+        })
 
+# 初始化資料庫
+init_db()
 
-
+# 啟動伺服器
 if __name__ == '__main__':
     app.run(debug=True)
