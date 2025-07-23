@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>Todo 搜尋</title>
+</head>
+<body>
+    <h1>Todo 搜尋系統</h1>
+    <input type="text" id="keyword" placeholder="輸入關鍵字（例如：牛）">
+    <button onclick="search()">搜尋</button>
+    <div id="result"></div>
+
+    <script>
+        function search() {
+            const keyword = document.getElementById("keyword").value;
+            fetch(`/todos/search?keyword=${encodeURIComponent(keyword)}`)
+                .then(response => response.json())
+                .then(data => {
+                    let html = `<p><strong>關鍵字：</strong>${data.keyword}</p>`;
+                    html += `<p><strong>訊息：</strong>${data.message}</p>`;
+                    if (data.todos.length > 0) {
+                        html += "<ul>";
+                        data.todos.forEach(todo => {
+                            html += `<li>${todo.title} ${todo.done ? "✔️" : "❌"}</li>`;
+                        });
+                        html += "</ul>";
+                    }
+                    document.getElementById("result").innerHTML = html;
+                })
+                .catch(error => {
+                    console.error("錯誤：", error);
+                    document.getElementById("result").innerHTML = "發生錯誤。";
+                });
+        }
+    </script>
+</body>
+</html>
