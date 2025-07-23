@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>任務搜尋</title>
+</head>
+<body>
+    <h1>任務搜尋</h1>
+    <input type="text" id="keyword" placeholder="輸入關鍵字，例如：牛">
+    <button onclick="searchTodos()">搜尋</button>
+
+    <div id="results"></div>
+
+    <script>
+        async function searchTodos() {
+            const keyword = document.getElementById("keyword").value;
+            const response = await fetch(`/todos/search?keyword=${encodeURIComponent(keyword)}`);
+            const data = await response.json();
+
+            const resultDiv = document.getElementById("results");
+            resultDiv.innerHTML = "";
+
+            if (data.todos && data.todos.length > 0) {
+                const list = document.createElement("ul");
+                data.todos.forEach(todo => {
+                    const item = document.createElement("li");
+                    item.textContent = `${todo.title}（已完成: ${todo.is_done ? '是' : '否'}）`;
+                    list.appendChild(item);
+                });
+                resultDiv.appendChild(list);
+            } else {
+                resultDiv.textContent = "找不到任務。";
+            }
+        }
+    </script>
+</body>
+</html>
