@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>任務搜尋</title>
+</head>
+<body>
+    <h1>任務搜尋</h1>
+    <input type="text" id="keyword" placeholder="請輸入關鍵字">
+    <button onclick="search()">搜尋</button>
+    <div id="result"></div>
+
+    <script>
+        function search() {
+            const keyword = document.getElementById("keyword").value;
+            fetch(`/todos/search?keyword=${encodeURIComponent(keyword)}`)
+                .then(res => res.json())
+                .then(data => {
+                    let html = `<p>關鍵字: ${data.keyword}</p>`;
+                    html += `<p>${data.message}</p>`;
+                    if (data.todos.length > 0) {
+                        html += "<ul>";
+                        data.todos.forEach(todo => {
+                            html += `<li>${todo.title}</li>`;
+                        });
+                        html += "</ul>";
+                    }
+                    document.getElementById("result").innerHTML = html;
+                });
+        }
+    </script>
+</body>
+</html>
