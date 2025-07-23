@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>任務清單</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>任務清單</h1>
+
+    <!-- 新增任務表單 -->
+    <form id="addForm" method="POST" action="/todos/add">
+        <input type="text" name="title" placeholder="輸入任務..." required>
+        <button type="submit">新增任務</button>
+    </form>
+
+    <!-- 顯示任務 -->
+    <ul>
+        {% for todo in todos %}
+        <li>{{ todo }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
