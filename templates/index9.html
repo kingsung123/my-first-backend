@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>代辦清單</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style1.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>代辦事項管理</h1>
+
+    <!-- 新增表單 -->
+    <form method="POST" action="/" class="form-section">
+      <input type="text" name="name" placeholder="項目名稱" required>
+      <input type="text" name="info" placeholder="描述" required>
+      <button type="submit">新增</button>
+    </form>
+
+    <!-- 搜尋表單 -->
+    <form method="GET" action="/" class="form-section">
+      <input type="text" name="q" placeholder="搜尋項目">
+      <button type="submit">搜尋</button>
+    </form>
+
+    <!-- 資料表格 -->
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>名稱</th>
+          <th>描述</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in data %}
+        <tr>
+          <td>{{ loop.index0 }}</td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.info }}</td>
+          <td>
+            <a href="{{ url_for('delete', index=loop.index0) }}" onclick="return confirm('確定要刪除嗎？')">刪除</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4">沒有資料</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
