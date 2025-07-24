@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>代辦事項搜尋</title>
+</head>
+<body>
+    <h1>搜尋代辦事項</h1>
+    <form id="search-form">
+        <input type="text" id="keyword" placeholder="請輸入關鍵字（支援中文）">
+        <button type="submit">搜尋</button>
+    </form>
+
+    <h2>結果：</h2>
+    <ul id="result-list"></ul>
+
+    <hr>
+
+    <h1>新增代辦事項</h1>
+    <form id="add-form">
+        <input type="text" id="new-todo" placeholder="輸入新任務標題">
+        <button type="submit">新增</button>
+    </form>
+
+    <script>
+        document.getElementById('search-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const keyword = document.getElementById('keyword').value;
+            fetch(`/todos/search?keyword=${encodeURIComponent(keyword)}`)
+                .then(res => res.json())
+                .then(data => {
+                    const list = document.getElementById('result-list');
+                    list.innerHTML = '';
+                    if (data.todos.length > 0) {
+                        data.todos.forEach(todo => {
+                            const li = document.createElement('li');
+                            li.textContent = todo.title;
+                            list.appendChild(li);
+                        });
+                    } else {
+                        list.innerHTML = `<li>${data.message}</li>`;
+                    }
+                });
+        });
+
+        document.getElementById('add-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const newTodo = document.getElementById('new-todo').value;
+            const formData = new FormData();
+            formData.append('title', newTodo);
+
+            fetch('/todos/add', {
+                method: 'POST',
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.message);
+                    document.getElementById('new-todo').value = '';
+                });
+        });
+    </script>
+</body>
+</html>
