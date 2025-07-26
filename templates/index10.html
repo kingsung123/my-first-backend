@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>我的待辦清單</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style2.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>📋 我的待辦清單</h1>
+
+        <!-- 搜尋區 -->
+        <form method="get" action="{{ url_for('index') }}" class="search-form">
+            <input type="text" name="search" placeholder="搜尋任務" value="{{ search }}">
+            <button type="submit">搜尋</button>
+        </form>
+
+        <!-- 新增任務區 -->
+        <form method="post" class="add-form">
+            <input type="text" name="task" placeholder="任務" required>
+            <input type="text" name="note" placeholder="備註">
+            <button type="submit">新增</button>
+        </form>
+
+        <!-- 待辦清單區 -->
+        <ul class="todo-list">
+            {% for todo in todos %}
+            <li>
+                <span class="task">{{ todo.task }}</span>
+                {% if todo.note %}
+                <span class="note">（{{ todo.note }}）</span>
+                {% endif %}
+                <form method="post" action="{{ url_for('delete', index=loop.index0) }}">
+                    <button type="submit" class="delete">刪除</button>
+                </form>
+            </li>
+            {% else %}
+            <li class="empty">沒有任務。</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>
